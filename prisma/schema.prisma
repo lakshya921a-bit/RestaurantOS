@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN
+}
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  BILL_REQUESTED
+  CLEANING
+  OUT_OF_SERVICE
+}
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+  ONLINE
+}
+enum ReservationStatus {
+  BOOKED
+  ARRIVED
+  SEATED
+  CANCELLED
+  NO_SHOW
+}
+enum StockMovementType {
+  PURCHASE
+  SALE
+  WASTAGE
+  ADJUSTMENT
+  RETURN
+}
+
+model Restaurant {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  currency String @default("INR")
+  timezone String @default("Asia/Kolkata")
+  gstin String?
+  address String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branches Branch[]
+  users User[]
+  customers Customer[]
+}
+
+model Branch {
+  id String @id @default(cuid())
+  restaurantId String
+  name String
+  address String?
+  phone String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  users User[]
+  tables DiningTable[]
+  categories MenuCategory[]
+  products Product[]
+  orders Order[]
+  reservations Reservation[]
+  ingredients Ingredient[]
+  suppliers Supplier[]
+  @@unique([restaurantId, name])
+  @@index([restaurantId])
+}
+
+model User {
+  id String @id @default(cuid())
+  restaurantId String
+  branchId String?
+  name String
+  email String @unique
+  passwordHash String
+  role Role
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  auditLogs AuditLog[]
+  @@index([restaurantId, role])
+}
+
+model DiningTable {
+  id String @id @default(cuid())
+  branchId String
+  name String
+  capacity Int @default(2)
+  zone String @default("Main")
+  status TableStatus @default(AVAILABLE)
+  qrTokenHash String @unique
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  orders Order[]
+  reservations Reservation[]
+  @@unique([branchId, name])
+  @@index([branchId, status])
+}
+
+model MenuCategory {
+  id String @id @default(cuid())
+  branchId String
+  name String
+  sortOrder Int @default(0)
+  active Boolean @default(true)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  products Product[]
+  @@unique([branchId, name])
+}
+
+model Product {
+  id String @id @default(cuid())
+  branchId String
+  categoryId String
+  name String
+  description String?
+  pricePaise Int
+  isAvailable Boolean @default(true)
+  isVeg Boolean @default(true)
+  imageUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  category MenuCategory @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+  recipeItems RecipeItem[]
+  @@index([branchId, isAvailable])
+}
+
+model Order {
+  id String @id @default(cuid())
+  orderNumber Int
+  branchId String
+  tableId String?
+  customerId String?
+  type OrderType
+  status OrderStatus @default(PENDING)
+  subtotalPaise Int
+  discountPaise Int @default(0)
+  taxPaise Int @default(0)
+  totalPaise Int
+  notes String?
+  idempotencyKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branch Branch @relation(fields: [branchId], references: [id])
+  table DiningTable? @relation(fields: [tableId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  items OrderItem[]
+  payments Payment[]
+  @@unique([branchId, orderNumber])
+  @@unique([branchId, idempotencyKey])
+  @@index([branchId, status, createdAt])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+  orderId String
+  productId String
+  productName String
+  quantity Int
+  unitPricePaise Int
+  lineTotalPaise Int
+  notes String?
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id String @id @default(cuid())
+  orderId String
+  amountPaise Int
+  method PaymentMethod
+  status PaymentStatus @default(PENDING)
+  provider String?
+  providerReference String? @unique
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model Customer {
+  id String @id @default(cuid())
+  restaurantId String
+  name String?
+  phone String?
+  email String?
+  loyaltyPoints Int @default(0)
+  createdAt DateTime @default(now())
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orders Order[]
+  @@index([restaurantId, phone])
+}
+
+model Reservation {
+  id String @id @default(cuid())
+  branchId String
+  tableId String?
+  guestName String
+  phone String?
+  partySize Int
+  startsAt DateTime
+  status ReservationStatus @default(BOOKED)
+  notes String?
+  branch Branch @relation(fields: [branchId], references: [id])
+  table DiningTable? @relation(fields: [tableId], references: [id])
+  @@index([branchId, startsAt, status])
+}
+
+model Ingredient {
+  id String @id @default(cuid())
+  branchId String
+  name String
+  unit String
+  quantity Decimal @default(0)
+  reorderLevel Decimal @default(0)
+  branch Branch @relation(fields: [branchId], references: [id])
+  recipeItems RecipeItem[]
+  movements StockMovement[]
+  @@unique([branchId, name])
+}
+
+model RecipeItem {
+  id String @id @default(cuid())
+  productId String
+  ingredientId String
+  quantity Decimal
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+  @@unique([productId, ingredientId])
+}
+
+model Supplier {
+  id String @id @default(cuid())
+  branchId String
+  name String
+  phone String?
+  email String?
+  branch Branch @relation(fields: [branchId], references: [id])
+}
+
+model StockMovement {
+  id String @id @default(cuid())
+  ingredientId String
+  type StockMovementType
+  quantity Decimal
+  reference String?
+  createdAt DateTime @default(now())
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  userId String?
+  restaurantId String
+  action String
+  entityType String
+  entityId String
+  metadata Json?
+  createdAt DateTime @default(now())
+  user User? @relation(fields: [userId], references: [id])
+  @@index([restaurantId, createdAt])
+}

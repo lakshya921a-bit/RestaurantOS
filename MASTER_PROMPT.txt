@@ -1,0 +1,34 @@
+MASTER BUILD PROMPT — RESTAURANTOS
+
+Act as a principal full-stack engineer, product designer, database architect, QA lead and application security engineer. Continue building RestaurantOS from this repository. Do not replace working code without reason.
+
+Build a premium, minimalist, production-grade, multi-tenant restaurant SaaS web app for India and international markets. It must support multiple restaurant organizations, branches, staff roles, table service, QR ordering, POS, kitchen display, inventory, reservations, GST-configurable billing, customers, loyalty and analytics.
+
+DESIGN
+Linear/Stripe-inspired, restrained neutrals, crisp typography, whitespace, accessible contrast, subtle borders, responsive layouts. Staff UX desktop/tablet-first; customer menu mobile-first. Every control must work. Include loading, empty, validation, success, failure and offline states.
+
+ARCHITECTURE
+Next.js App Router, TypeScript strict, PostgreSQL, Prisma, server-side validation, secure sessions, tenant isolation, role-based authorization, transactional domain services, idempotent mutations, audit trail, real-time updates, CI and automated tests. Keep secrets server-only.
+
+CORE FLOWS
+- Restaurant onboarding and branch setup.
+- Table floor plan with zones, capacities, reservations, status lifecycle, merging/splitting/transferring and conflict prevention.
+- Unique signed QR per table. Guests scan without installing an app; browse categories/items, modifiers, dietary info, cart, notes, submit, add more to shared table session and track order.
+- POS: dine-in/takeaway/delivery, discounts, configurable GST/service charge, split by item/person/amount, partial payments, receipts, refunds and cash drawer reconciliation.
+- KDS: real-time ticket updates, station routing, timers, priority, recall and ready/served lifecycle.
+- Menu, modifiers, availability schedules, inventory ingredients/recipes/suppliers/purchase/wastage, reservations/waitlist, staff shifts/attendance, customer profiles/loyalty, analytics and exports.
+
+NON-NEGOTIABLE
+Never trust client price/tax/discount/payment status. Recalculate all money server-side in integer paise. Use DB transactions, unique constraints and idempotency for orders/payments/refunds/webhooks. Verify provider webhook signatures. Never store card data. Enforce restaurant and branch access on every query. Use explicit state machines. Handle concurrent table sessions and stock changes safely. Add audit records for sensitive changes. Rate-limit public QR and login endpoints. Use secure cookies, origin/CSRF defenses, structured logs, monitoring, backup/restore drills and safe error messages.
+
+PAYMENTS
+Integrate Razorpay using sandbox credentials first. Create provider orders server-side, verify signatures/webhooks, reconcile delayed/duplicate events, support refunds and partial payments. A browser redirect must never mark a payment as paid. Cash payments require authorized staff actions. Keep provider adapters replaceable.
+
+INDIA
+Support INR, configurable GST rates, tax-inclusive/exclusive pricing, GSTIN, invoice numbering, credit notes, service charge configuration and rounding. Make legal/tax settings configurable and require professional review rather than hardcoding legal claims.
+
+QUALITY
+Add Vitest/Jest unit tests, API integration tests and Playwright E2E. Test tenant isolation, permissions, QR tampering, duplicate submits, race conditions, payment webhook replay, failed payments, refunds, table conflicts, order state transitions, GST calculations and stock concurrency. Run lint, typecheck, migrations and tests; fix failures. Add GitHub Actions CI, Docker production setup and deployment docs.
+
+DELIVERY
+Implement vertical slices and keep the app runnable. For each slice, state what is implemented, files changed, commands/tests run, and remaining risks. Never claim production-ready until real provider sandbox/live certification, independent security review, tax review, backups, monitoring and full end-to-end tests are complete. If credentials or decisions are missing, provide safe setup instructions and do not invent them.
